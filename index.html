@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - Mas Baim Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #1a73e8;
+      --blue-dark: #1557b0;
+      --green: #34a853;
+      --red: #ea4335;
+      --yellow: #fbbc04;
+      --sidebar-bg: #f8f9fa;
+      --border: #e0e0e0;
+      --text-primary: #202124;
+      --text-secondary: #5f6368;
+      --hover-bg: #e8f0fe;
+      --white: #ffffff;
+      --radius: 12px;
+      
+      /* Variabel Warna Baru dari Loading Page */
+      --accent-yellow: #f4b400;
+      --accent-blue: #2196f3;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #e8eaf0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .admin-window {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--white);
+      border-radius: 18px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.16);
+      overflow: hidden;
+    }
+
+    /* HEADER */
+    .header {
+      background: var(--blue);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-title {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--white);
+    }
+
+    /* AUTH SECTION */
+    .auth-section { padding: 40px 24px; text-align: center; }
+    .auth-section h2 {
+      font-family: 'Google Sans', sans-serif;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .auth-section p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .auth-form {
+      max-width: 360px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .auth-form input {
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .auth-form input:focus { border-color: var(--blue); }
+    .auth-form button {
+      padding: 12px;
+      background: var(--blue);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .auth-form button:hover { background: var(--blue-dark); }
+    .auth-error {
+      color: var(--red);
+      font-size: 13px;
+      display: none;
+    }
+
+    /* ADMIN PANEL */
+    .admin-panel { display: none; padding: 24px; }
+    .admin-panel.active { display: block; }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .admin-title-area { display: flex; flex-direction: column; gap: 4px; }
+    .admin-header h2 { font-family: 'Google Sans', sans-serif; color: var(--text-primary); }
+    .user-email-sub { font-size: 13px; color: var(--text-secondary); }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .btn-logout { padding: 6px 14px; background: var(--red); color: white; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; transition: opacity 0.2s; }
+    .btn-logout:hover { opacity: 0.9; }
+
+    /* UPLOAD FORM */
+    .upload-section { background: var(--sidebar-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+    .upload-section h3 { font-family: 'Google Sans', sans-serif; color: var(--text-primary); margin-bottom: 16px; }
+    .upload-form { display: flex; flex-direction: column; gap: 16px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: end; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+    .form-group select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'Roboto', sans-serif; outline: none; background: var(--white); cursor: pointer; transition: border-color 0.2s; }
+    .form-group select:focus { border-color: var(--blue); }
+
+    /* FILE DROP ZONE */
+    .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 30px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--blue); background: var(--hover-bg); }
+    .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .drop-zone-icon { font-size: 36px; margin-bottom: 8px; }
+    .drop-zone-text { font-size: 14px; color: var(--text-secondary); }
+    .drop-zone-text strong { color: var(--blue); }
+
+    /* MULTIPLE PREVIEW CONTAINER */
+    .preview-container { margin-top: 16px; display: none; }
+    .preview-container.active { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
+    .preview-img { width: 100%; height: 100px; border-radius: 8px; object-fit: cover; border: 2px solid var(--blue); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+    .upload-footer { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; margin-top: 8px; }
+    .btn-upload { padding: 12px 32px; background: var(--green); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; gap: 8px; }
+    .btn-upload:hover { opacity: 0.9; }
+    .btn-upload:disabled { opacity: 0.5; cursor: not-allowed; }
+    .upload-status { margin-top: 4px; font-size: 13px; padding: 10px 24px; border-radius: 8px; display: none; text-align: center; width: 100%; max-width: 400px; }
+    .upload-status.success { display: block; background: #e6f4ea; color: #137333; }
+    .upload-status.error { display: block; background: #fce8e6; color: #c5221f; }
+    .upload-status.loading { display: block; background: #e8f0fe; color: var(--blue); }
+
+    /* PHOTO LIST */
+    .photos-section { margin-top: 24px; }
+    .photos-section h3 { font-family: 'Google Sans', sans-serif; color: var(--text-primary); margin-bottom: 16px; }
+    .filter-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-bar label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+    .filter-bar select { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: var(--white); cursor: pointer; }
+    .filter-current-badge { background: var(--blue); color: white; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    .photo-count-badge { margin-left: auto; font-size: 12px; color: var(--text-secondary); background: var(--sidebar-bg); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); }
+
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+    .photo-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: box-shadow 0.2s; }
+    .photo-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    .photo-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .photo-card-info { padding: 10px; }
+    .photo-card-title { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .photo-card-category { font-size: 11px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+    .photo-card-category .cat-year { color: var(--blue); font-weight: 500; }
+    .photo-card-actions { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--border); }
+    .btn-delete { flex: 1; padding: 6px; background: var(--red); color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; transition: opacity 0.2s; }
+    .btn-delete:hover { opacity: 0.9; }
+
+    /* ═══════════════════════════════════════════
+       GAYA LOADING PAGE (BARU & TRANSPARAN BLUR)
+       ═══════════════════════════════════════════ */
+    .overlay-loading {
+      position: fixed;
+      inset: 0;
+      background: rgba(111, 146, 172, 0.5); /* Dominasi warna --bg-blue asli dengan transparansi */
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 9999;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .overlay-loading.active {
+      display: flex;
+    }
+
+    .spinner-wrap {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 4px solid transparent;
+    }
+
+    .ring.yellow {
+      border-top-color: var(--accent-yellow);
+      border-left-color: var(--accent-yellow);
+      animation: spin 1.1s linear infinite;
+    }
+
+    .ring.blue {
+      border-bottom-color: var(--accent-blue);
+      border-right-color: var(--accent-blue);
+      animation: spin-rev 1.1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin-rev { to { transform: rotate(-360deg); } }
+
+    .lock-badge {
+      width: 36px;
+      height: 36px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .lock-badge svg {
+      width: 16px;
+      height: 16px;
+      fill: #2b2b2b;
+    }
+
+    .status-text {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: #1c2b3a;
+      text-align: center;
+      text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 0; }
+      .admin-window { border-radius: 0; }
+      .form-row { grid-template-columns: 1fr; }
+      .photo-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-window">
+  <div class="header">
+    <div class="header-left">
+      <span class="header-title">⚙ Admin Panel</span>
+    </div>
+  </div>
+
+  <div class="auth-section" id="authSection">
+    <h2>🔐 Login Admin</h2>
+    <p>Masuk untuk mengelola foto galeri</p>
+    <div class="auth-form">
+      <input type="email" id="authEmail" placeholder="Email" />
+      <input type="password" id="authPassword" placeholder="Password" />
+      <div class="auth-error" id="authError"></div>
+      <button onclick="handleLogin()">Login</button>
+    </div>
+  </div>
+
+  <div class="admin-panel" id="adminPanel">
+    <div class="admin-header">
+      <div class="admin-title-area">
+        <h2>📸 Upload Foto</h2>
+        <span id="userEmail" class="user-email-sub"></span>
+      </div>
+      <div class="user-info">
+        <button class="btn-logout" onclick="handleLogout()">Logout</button>
+      </div>
+    </div>
+
+    <div class="upload-section">
+      <div class="upload-form">
+        <div class="form-group">
+          <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*" multiple />
+            <div class="drop-zone-icon">📁</div>
+            <div class="drop-zone-text">
+              <strong>Klik untuk pilih</strong> atau drag & drop gambar
+            </div>
+          </div>
+          <div class="preview-container" id="previewContainer"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>📅 Tahun</label>
+            <select id="photoYear" onchange="updateMonthOptions()"></select>
+          </div>
+          <div class="form-group">
+            <label>📁 Bulan</label>
+            <select id="photoMonth"></select>
+          </div>
+        </div>
+
+        <div class="upload-footer">
+          <button class="btn-upload" id="btnUpload" onclick="handleUpload()">
+            📤 Upload Foto
+          </button>
+          <div class="upload-status" id="uploadStatus"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="photos-section">
+      <h3>📋 Daftar Foto</h3>
+      <div class="filter-bar">
+        <label>Filter:</label>
+        <select id="filterCategory" onchange="loadAdminPhotos()"></select>
+        <span class="filter-current-badge" id="filterCurrentBadge">📍 Periode ini</span>
+        <span class="photo-count-badge" id="photoCountBadge">0 foto</span>
+      </div>
+      <div class="photo-grid" id="photoGrid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#5f6368;">
+          Memuat foto...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay-loading" id="loadingPage">
+  <div class="spinner-wrap">
+    <div class="ring yellow"></div>
+    <div class="ring blue"></div>
+    <div class="lock-badge">
+      <svg viewBox="0 0 24 24"><path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9zm3 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>
+    </div>
+  </div>
+  <div class="status-text">SECURE AUTHENTICATING</div>
+</div>
+
+<script>
+  // ═══════════════════════════════════════════
+  // SUPABASE CONFIGURATION
+  // ═══════════════════════════════════════════
+  const SUPABASE_URL = 'https://aoemqjuvwnwfhpdeylan.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvZW1xanV2d253ZmhwZGV5bGFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NTQ0MTcsImV4cCI6MjA5NjMzMDQxN30.SqHeXWJhyf-LLf2jtfbhpYttjoapHnhfvCtubQ_fcuE';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const NOW = new Date();
+  const CURRENT_YEAR = NOW.getFullYear().toString();
+  const CURRENT_MONTH = String(NOW.getMonth() + 1).padStart(2, '0');
+  const CURRENT_CATEGORY = `${CURRENT_YEAR}-${CURRENT_MONTH}`;
+
+  function getYearRange() {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = currentYear; y >= currentYear - 3; y--) { years.push(y.toString()); }
+    return years;
+  }
+
+  const MONTHS = [
+    { key: '01', name: 'Januari' }, { key: '02', name: 'Februari' }, { key: '03', name: 'Maret' },
+    { key: '04', name: 'April' }, { key: '05', name: 'Mei' }, { key: '06', name: 'Juni' },
+    { key: '07', name: 'Juli' }, { key: '08', name: 'Agustus' }, { key: '09', name: 'September' },
+    { key: '10', name: 'Oktober' }, { key: '11', name: 'November' }, { key: '12', name: 'Desember' }
+  ];
+
+  let selectedFiles = [];
+  let currentUser = null;
+
+  // LOGIC LOGIN DENGAN LOADING BARU
+  async function handleLogin() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errorEl = document.getElementById('authError');
+    const loadingPage = document.getElementById('loadingPage');
+
+    if (!email || !password) {
+      errorEl.textContent = 'Email dan password harus diisi!';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    // Aktifkan overlay loading di atas halaman login admin
+    loadingPage.classList.add('active');
+    errorEl.style.display = 'none';
+
+    // Jeda artifisial singkat untuk transisi animasi spinner
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+    // Sembunyikan loading
+    loadingPage.classList.remove('active');
+
+    if (error) {
+      errorEl.textContent = error.message;
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    currentUser = data.user;
+    await showAdminPanel();
+  }
+
+  async function handleLogout() {
+    await sb.auth.signOut();
+    currentUser = null;
+    document.getElementById('authSection').style.display = 'block';
+    document.getElementById('adminPanel').classList.remove('active');
+  }
+
+  async function showAdminPanel() {
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('adminPanel').classList.add('active');
+    document.getElementById('userEmail').textContent = currentUser.email;
+    
+    await initCategorySelectors();
+    loadAdminPhotos();
+  }
+
+  async function checkAuth() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (user) {
+      currentUser = user;
+      await showAdminPanel();
+    }
+  }
+
+  // CATEGORY SELECTORS & FILE HANDLING
+  async function initCategorySelectors() {
+    buildYearDropdown();
+    updateMonthOptions();   
+    await buildFilterDropdown();  
+  }
+
+  function buildYearDropdown() {
+    const yearSelect = document.getElementById('photoYear');
+    yearSelect.innerHTML = '';
+    getYearRange().forEach(year => {
+      const opt = document.createElement('option');
+      opt.value = year;
+      opt.textContent = year === CURRENT_YEAR ? `📅 ${year} (sekarang)` : `📅 ${year}`;
+      if (year === CURRENT_YEAR) opt.selected = true;
+      yearSelect.appendChild(opt);
+    });
+  }
+
+  function updateMonthOptions() {
+    const monthSelect = document.getElementById('photoMonth');
+    monthSelect.innerHTML = '';
+    MONTHS.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.key;
+      opt.textContent = `📁 ${m.name}`;
+      if (m.key === CURRENT_MONTH) opt.selected = true;
+      monthSelect.appendChild(opt);
+    });
+  }
+
+  async function buildFilterDropdown() {
+    const filterSelect = document.getElementById('filterCategory');
+    const savedValue = filterSelect.value;
+    filterSelect.innerHTML = '<option value="">⏳ Memuat filter...</option>';
+
+    try {
+      const { data, error } = await sb.from('photos').select('category');
+      if (error) throw error;
+
+      const uniqueCategories = [...new Set(data.map(item => item.category))]
+        .filter(Boolean)
+        .sort((a, b) => b.localeCompare(a));
+
+      filterSelect.innerHTML = '';
+
+      const optCurrent = document.createElement('option');
+      optCurrent.value = CURRENT_CATEGORY;
+      const currentMonthLabel = MONTHS.find(m => m.key === CURRENT_MONTH)?.name || CURRENT_MONTH;
+      optCurrent.textContent = `📍 ${currentMonthLabel} ${CURRENT_YEAR} (Periode Ini)`;
+      filterSelect.appendChild(optCurrent);
+
+      const optDivider = document.createElement('option');
+      optDivider.disabled = true;
+      optDivider.textContent = '──────────────────';
+      filterSelect.appendChild(optDivider);
+
+      const optAll = document.createElement('option');
+      optAll.value = '';
+      optAll.textContent = '🗂 Semua Foto';
+      filterSelect.appendChild(optAll);
+
+      const yearsWithData = [...new Set(uniqueCategories.map(cat => cat.split('-')[0]))];
+
+      yearsWithData.forEach(year => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = year === CURRENT_YEAR ? `📅 ${year} (sekarang)` : `📅 ${year}`;
+        const monthsInYear = uniqueCategories.filter(cat => cat.startsWith(year));
+
+        monthsInYear.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat;
+          if (cat.includes('-')) {
+            const monthKey = cat.split('-')[1];
+            const monthName = MONTHS.find(m => m.key === monthKey)?.name || monthKey;
+            opt.textContent = cat === CURRENT_CATEGORY ? `📍 ${monthName} (sekarang)` : `📁 ${monthName}`;
+          } else {
+            opt.textContent = `📂 Semua ${year}`;
+          }
+          optgroup.appendChild(opt);
+        });
+        filterSelect.appendChild(optgroup);
+      });
+
+      if (savedValue && [...filterSelect.options].some(o => o.value === savedValue)) {
+        filterSelect.value = savedValue;
+      } else {
+        filterSelect.value = CURRENT_CATEGORY;
+      }
+    } catch (err) {
+      filterSelect.innerHTML = '<option value="">❌ Gagal memuat filter</option>';
+    }
+  }
+
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+  const previewContainer = document.getElementById('previewContainer');
+
+  fileInput.addEventListener('change', (e) => handleMultipleFiles(e.target.files));
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleMultipleFiles(e.dataTransfer.files); });
+
+  function handleMultipleFiles(files) {
+    if (!files || files.length === 0) return;
+    const validFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    if (validFiles.length === 0) { alert('Pilih file gambar saja!'); return; }
+
+    selectedFiles = [...selectedFiles, ...validFiles];
+    previewContainer.innerHTML = '';
+    previewContainer.classList.add('active');
+
+    selectedFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement('img');
+        img.className = 'preview-img';
+        img.src = e.target.result;
+        previewContainer.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleUpload() {
+    const year = document.getElementById('photoYear').value;
+    const month = document.getElementById('photoMonth').value;
+    const category = month ? `${year}-${month}` : year;
+
+    if (selectedFiles.length === 0) { showStatus('Pilih minimal satu file gambar terlebih dahulu!', 'error'); return; }
+    const btn = document.getElementById('btnUpload');
+    btn.disabled = true;
+
+    let successCount = 0; let errorCount = 0;
+
+    for (let idx = 0; idx < selectedFiles.length; idx++) {
+      const file = selectedFiles[idx];
+      const originalName = file.name;
+      const title = originalName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ').trim() || 'Untitled';
+      showStatus(`Mengupload foto ke-${idx + 1} dari ${selectedFiles.length}...`, 'loading');
+
+      try {
+        const ext = originalName.split('.').pop();
+        const prefix = `${year}${month}`;
+        const nowUpload = new Date();
+        const uploadDay = String(nowUpload.getDate()).padStart(2, '0');
+        const timeStamp = `${String(nowUpload.getHours()).padStart(2, '0')}${String(nowUpload.getMinutes()).padStart(2, '0')}${String(nowUpload.getSeconds()).padStart(2, '0')}`;
+        const fileName = `${prefix}_${uploadDay}_${timeStamp}_${idx + 1}.${ext}`;
+        const filePath = `${category}/${fileName}`;
+
+        const { error: storageError } = await sb.storage.from('photos').upload(filePath, file, { cacheControl: '3600', upsert: false });
+        if (storageError) throw new Error(storageError.message);
+
+        const { data: { publicUrl } } = sb.storage.from('photos').getPublicUrl(filePath);
+
+        const { error: dbError } = await sb.from('photos').insert({ title, description: '', image_url: publicUrl, thumbnail_url: publicUrl, category, sort_order: 0 });
+        if (dbError) throw new Error(dbError.message);
+
+        successCount++;
+      } catch (err) { errorCount++; }
+    }
+
+    if (errorCount === 0) { showStatus(`✅ Berhasil mengupload ${successCount} foto!`, 'success'); }
+    else { showStatus(`⚠️ Selesai: ${successCount} sukses, ${errorCount} gagal.`, 'error'); }
+
+    selectedFiles = []; fileInput.value = ''; previewContainer.innerHTML = ''; previewContainer.classList.remove('active');
+    await buildFilterDropdown(); loadAdminPhotos();
+    btn.disabled = false;
+  }
+
+  function showStatus(message, type) {
+    const statusEl = document.getElementById('uploadStatus');
+    statusEl.textContent = message; statusEl.className = 'upload-status ' + type;
+  }
+
+  async function loadAdminPhotos() {
+    const grid = document.getElementById('photoGrid');
+    const filterVal = document.getElementById('filterCategory').value;
+    const countBadge = document.getElementById('photoCountBadge');
+    const currentBadge = document.getElementById('filterCurrentBadge');
+
+    currentBadge.style.display = filterVal === CURRENT_CATEGORY ? 'inline-flex' : 'none';
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#5f6368;">Memuat foto...</div>';
+
+    let query = sb.from('photos').select('*').order('created_at', { ascending: false });
+    if (filterVal) {
+      if (filterVal.includes('-')) { query = query.eq('category', filterVal); }
+      else { query = query.like('category', `${filterVal}%`); }
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ea4335;">Error: ${error.message}</div>`;
+      countBadge.textContent = '0 foto'; return;
+    }
+
+    const photos = data || [];
+    countBadge.textContent = `${photos.length} foto`;
+
+    if (photos.length === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#5f6368;"><div style="font-size:32px;margin-bottom:8px;">📭</div>Belum ada foto di periode ini.</div>`;
+      return;
+    }
+
+    grid.innerHTML = photos.map(photo => {
+      const catLabel = formatCategory(photo.category);
+      return `
+        <div class="photo-card">
+          <img src="${photo.thumbnail_url || photo.image_url}" alt="${photo.title}" />
+          <div class="photo-card-info">
+            <div class="photo-card-title" title="${photo.title}">${photo.title}</div>
+            <div class="photo-card-category">${catLabel}</div>
+          </div>
+          <div class="photo-card-actions">
+            <button class="btn-delete" onclick="deletePhoto('${photo.id}', '${photo.image_url}')">🗑 Hapus</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function formatCategory(cat) {
+    if (!cat) return '📁 -';
+    if (cat.includes('-')) {
+      const [year, monthKey] = cat.split('-');
+      const monthName = MONTHS.find(m => m.key === monthKey)?.name || monthKey;
+      return `📅 <span class="cat-year">${year}</span> → 📁 ${monthName}`;
+    }
+    return `📅 <span class="cat-year">${cat}</span> (seluruh tahun)`;
+  }
+
+  async function deletePhoto(id, imageUrl) {
+    if (!confirm('Yakin ingin menghapus foto ini?')) return;
+    try {
+      const { error: dbError } = await sb.from('photos').delete().eq('id', id);
+      if (dbError) throw dbError;
+      const urlParts = imageUrl.split('/photos/');
+      if (urlParts.length > 1) { await sb.storage.from('photos').remove([urlParts[1]]); }
+      await buildFilterDropdown(); loadAdminPhotos();
+    } catch (err) { alert('Gagal menghapus: ' + err.message); }
+  }
+
+  checkAuth();
+</script>
+</body>
+</html>
